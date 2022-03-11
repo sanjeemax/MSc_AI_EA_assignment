@@ -11,6 +11,7 @@ import static java.lang.Math.exp;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Scanner;
 import java.util.random.RandomGenerator;
 import java.util.random.RandomGeneratorFactory;
 import java.util.stream.IntStream;
@@ -32,6 +33,7 @@ import io.jenetics.Mutator;
 import io.jenetics.Optimize;
 import io.jenetics.Phenotype;
 import io.jenetics.RouletteWheelSelector;
+import io.jenetics.Selector;
 import io.jenetics.TournamentSelector;
 import io.jenetics.engine.Codec;
 import io.jenetics.engine.Codecs;
@@ -48,7 +50,10 @@ import io.jenetics.util.RandomRegistry;
 public class Genetics_4 {
 	public static final String filePath_population = ".//population.csv"; 
 	public static final String filePath_phenotype = ".//phenotype.csv"; 
-	private static Alterer alterer = null;
+	private static Alterer alterer_recomb = null;
+	private static Alterer alterer_mutate = null;
+	private static Selector selector_offspring = null;
+	private static Selector selector_survivors = null;
 	
 	static final Problem<double[], DoubleGene, Double>
 	PROBLEM = Problem.of(
@@ -61,11 +66,21 @@ public class Genetics_4 {
 		final int length = 8;
 		final double ps = 0.5;
 		initCSVPhenotype();
-		final int[] indexes = IntStream.range(0, length)
-				.filter(i -> random.nextDouble() < ps)
-				.toArray();
-		alterer = new CombineAlterer<DoubleGene, Double>(
-				(g1, g2) -> g1.newInstance(g1.doubleValue()/g2.doubleValue()));
+		switch(sel) {
+		case 0:
+			alterer_recomb = new CombineAlterer<DoubleGene, Double>(
+					(g1, g2) -> g1.newInstance(g1.doubleValue()/g2.doubleValue()));
+		break;
+		case 1:
+			alterer_recomb = new MeanAlterer<>(0.5);
+			alterer_mutate = new Mutator<>(0.03);
+			selector_offspring = new TournamentSelector<>();
+			selector_survivors = new RouletteWheelSelector<>();
+			break;
+		case 2:
+			break;
+		
+		}
 	}
 	
 	// The fitness function.
@@ -212,35 +227,52 @@ public class Genetics_4 {
 			genotype,gt -> gt.chromosome().as(DoubleChromosome.class).toArray());
 
 
-	
+	// Create evolution statistics consumer.
+	final static EvolutionStatistics<Double, ?>
+		statistics = EvolutionStatistics.ofNumber();
 	
       
 	public static void main(final String[] args) {
-
-		init(1);
-		final Engine<DoubleGene, Double> engine = 
-				Engine.builder(PROBLEM)
-				//.builder(Genetics_4::fitness,codec)
-				.populationSize(100)
-				.optimize(Optimize.MINIMUM)
-				.alterers(
-						new Mutator<>(0.03),
-						new MeanAlterer<>(0.5))
-				.survivorsSelector(new RouletteWheelSelector<>())
-				.offspringSelector(new TournamentSelector<>())
-				.build();
-		
-		final double[] result = codec.decode(
-				engine.stream()
-				.limit(Limits.bySteadyFitness(100))
-				.peek(Genetics_4::update)
-				//.limit(300)
-				.collect(EvolutionResult.toBestGenotype())
-				);
-		//System.out.println(statistics);
-		//System.out.println(best);
-		System.out.println(result.toString());
-
+		int opt = 0;
+	    Scanner myObj = new Scanner(System.in);  // Create a Scanner object
+	    do {
+		    System.out.println("0 : Default Profile");
+		    System.out.println("1 : Profile Tournament/Roulettwheel");
+		    System.out.println("2 : Default Profile");
+		    System.out.println("3 : Exit");
+		    System.out.print("Enter option :");
+	
+		    String userOption = myObj.nextLine();  // Read user input
+		    opt = Integer.valueOf(userOption); 
+		    System.out.println("Option is: " + opt);  // Output user input
+		    if(opt != 3) {
+				init(opt);
+				@SuppressWarnings("unchecked")
+				final Engine<DoubleGene, Double> engine = 
+						Engine.builder(PROBLEM)
+						//.builder(Genetics_4::fitness,codec)
+						.populationSize(100)
+						.optimize(Optimize.MINIMUM)
+						.alterers(
+								alterer_mutate,
+								alterer_recomb)
+						.survivorsSelector(selector_survivors)
+						.offspringSelector(selector_offspring)
+						.build();
+				
+				final double[] result = codec.decode(
+						engine.stream()
+						.limit(Limits.bySteadyFitness(100))
+						.peek(Genetics_4::update)
+						.peek(statistics)
+						//.limit(300)
+						.collect(EvolutionResult.toBestGenotype())
+						);
+				System.out.println(statistics);
+				//System.out.println(best);
+				System.out.println("x : " + result[0] + " y : " + result[1]);
+			}
+	    }while(opt != 3);
 
 	}
 
