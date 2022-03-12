@@ -28,7 +28,9 @@ import io.jenetics.CombineAlterer;
 import io.jenetics.DoubleChromosome;
 import io.jenetics.DoubleGene;
 import io.jenetics.Genotype;
+import io.jenetics.LinearRankSelector;
 import io.jenetics.MeanAlterer;
+import io.jenetics.MonteCarloSelector;
 import io.jenetics.Mutator;
 import io.jenetics.Optimize;
 import io.jenetics.Phenotype;
@@ -238,7 +240,7 @@ public class Genetics_4 {
 	    do {
 		    System.out.println("0 : Default Profile");
 		    System.out.println("1 : Profile Tournament/Roulettwheel");
-		    System.out.println("2 : Default Profile");
+		    System.out.println("2 : Profile LinearRank/Montecarlo");
 		    System.out.println("3 : Exit");
 		    System.out.print("Enter option :");
 	
